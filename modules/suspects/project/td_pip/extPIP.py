@@ -1,9 +1,9 @@
 '''Info Header Start
 Name : extPIP
-Author : Admin@DESKTOP-RTI312L
+Author : wieland@MONOMANGO
 Version : 0
-Build : 5
-Savetimestamp : 2023-01-08T13:44:33.209168
+Build : 6
+Savetimestamp : 2023-06-13T12:34:10.193280
 Saveorigin : Project.toe
 Saveversion : 2022.28040
 Info Header End'''
@@ -32,17 +32,18 @@ class extPIP:
 		self.init_local_library()
 		self.install_pip()
 		
-	def InstallPackage(self, package):
+	def InstallPackage(self, package, additional_settings = []):
 		logger.Log( "Installing Package", package)
 		try:
-			subprocess.check_call([self.python_exec, "-m", "pip", "install", package, "--target", "{}".format(self.local_lib_path.replace('\\', '/'))])
+			subprocess.check_call([self.python_exec, "-m", "pip", "install", package, "--target", "{}".format(self.local_lib_path.replace('\\', '/'))] + additional_settings)
 		except: 
 			logger.Log("Failed Installing Package", package)
 			return False
 		
 		return True
-		
-			
+	
+	def UpgradePackage(self, package):
+		return self.InstallPackage( package, additional_settings=["--upgrade"])
 		#subprocess.check_call([self.python_exec, "-m", "pip", "install", package])
 		
 	def UninstallPackage(self, package):
@@ -52,9 +53,9 @@ class extPIP:
 		
 	def TestPackage(self, package, silent = False):
 		logger.Log("Testing for package", package)
-		try:
-			importlib.import_module(package)
-		except:
+		
+		found_package = importlib.util.find_spec( package )	
+		if found_package is None:
 			logger.Log( "Package does not exist", package)
 			if not silent: ui.messageBox('Does not exist', 'The package is not installed')
 			return False
@@ -63,33 +64,22 @@ class extPIP:
 		return True
 			
 	
-	def Import_Module(self, module, pip_name = ''):
+	def Import_Module(self, module, pip_name = '', additional_settings=[] ):
 		if not pip_name: pip_name = module
 		if not self.TestPackage(module, silent = True): 
-			if not self.InstallPackage(pip_name):
+			if not self.InstallPackage(pip_name, additional_settings=additional_settings):
 				return False
 		return importlib.import_module(module)
 	
-	def add_path_to_syspath(self, path:str):
-		if path in sys.path: 
-			logger.Log( "Local lib already in syspath")
-			return
-		sys.path.insert(0, path)
-
-	def add_path_to_envpath(self, path:str):
-		python_pathes = [ element for element in os.environ.get("PYTHONPATH", "").split(os.pathsep) if element]		
-		if path in python_pathes: 
-			logger.Log( "Local Library already in pythonpath")
-			return
-		os.environ["PYTHONPATH"] = os.pathsep.join( [path] + python_pathes)
-
 	def init_local_library(self):
-		logger.Log( "Initializing Local Library", self.path )
+		logger.Log( "Initializing Local Library")
 		os.makedirs(self.path, exist_ok = True)
 		self.local_lib_path = os.path.abspath(self.path)
-		self.add_path_to_syspath( self.local_lib_path )
-		self.add_path_to_envpath( self.local_lib_path )
-		
+		if self.local_lib_path in sys.path: 
+			logger.Log( "Local Library exists")
+			return
+		sys.path.insert(0, self.local_lib_path)
+		os.environ['PYTHONPATH'] = self.local_lib_path
 		logger.Log( "Local Library initialised.")
 	@property
 	def path(self):
