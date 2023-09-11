@@ -1,12 +1,11 @@
+
 '''Info Header Start
 Name : extPIP
-Author : wieland@MONOMANGO
-Version : 0
-Build : 6
-Savetimestamp : 2023-06-13T12:34:10.193280
+Author : Wieland@AMB-ZEPH15
 Saveorigin : Project.toe
 Saveversion : 2022.28040
 Info Header End'''
+from pathlib import Path
 import subprocess
 import importlib
 import os
@@ -18,7 +17,7 @@ from io import BytesIO
 from zipfile import ZipFile
 
 logger = op("logger")
-
+USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
 class extPIP:
 	"""
 	extPIP description
@@ -28,14 +27,18 @@ class extPIP:
 		self.ownerComp = ownerComp
 		self.python_exec = app.binFolder + '/python.exe'
 		logger.Log("Initialising Component")
-		self.local_lib_path = ''
-		self.init_local_library()
-		self.install_pip()
+		self.localLibPath = ''
+		self.initLocalLibrary()
+		self.installPIP()
+
+		#Backward Compatbiel
+		self.init_local_library = self.initLocalLibrary
+		self.Import_Module = self.ImportModule
 		
 	def InstallPackage(self, package, additional_settings = []):
 		logger.Log( "Installing Package", package)
 		try:
-			subprocess.check_call([self.python_exec, "-m", "pip", "install", package, "--target", "{}".format(self.local_lib_path.replace('\\', '/'))] + additional_settings)
+			subprocess.check_call([self.python_exec, "-m", "pip", "install", package, "--target", "{}".format(self.localLibPath.replace('\\', '/'))] + additional_settings)
 		except: 
 			logger.Log("Failed Installing Package", package)
 			return False
@@ -64,29 +67,48 @@ class extPIP:
 		return True
 			
 	
-	def Import_Module(self, module, pip_name = '', additional_settings=[] ):
+	def ImportModule(self, module, pip_name = '', additional_settings=[] ):
 		if not pip_name: pip_name = module
 		if not self.TestPackage(module, silent = True): 
 			if not self.InstallPackage(pip_name, additional_settings=additional_settings):
 				return False
 		return importlib.import_module(module)
 	
-	def init_local_library(self):
+	def initLocalLibrary(self):
 		logger.Log( "Initializing Local Library")
-		os.makedirs(self.path, exist_ok = True)
-		self.local_lib_path = os.path.abspath(self.path)
-		if self.local_lib_path in sys.path: 
+		
+		self.localLibPath = self.path.absolute()
+
+		if str( self.localLibPath ) in sys.path: 
 			logger.Log( "Local Library exists")
 			return
-		sys.path.insert(0, self.local_lib_path)
-		os.environ['PYTHONPATH'] = self.local_lib_path
+		
+		self.path.mkdir( parents=True, exist_ok=True)
+		sys.path.insert(0, self.localLibPath)
+
+		os.environ['PYTHONPATH'] = self.localLibPath
 		logger.Log( "Local Library initialised.")
+		
 	@property
 	def path(self):
-		return self.ownerComp.par.Library.eval().rstrip("/\\")
+		if ui.preferences['general.pythonpackages64'] :
+			if op("/").fetch(USE_PREFFERENCE_PATH_STORAGE_KEY, None) is None:
+				if ui.messageBox(
+					"Python Path Deteced", 
+					"It seems like you already have a pythonpath set. Would you like to use it?", 
+					buttons = ["Yes", "No"] ):
+					op("/").store(USE_PREFFERENCE_PATH_STORAGE_KEY, True)
 
-	def install_pip(self):
-		if os.path.isdir( f"{self.path}/pip" ): 
+				if op("/").fetch(USE_PREFFERENCE_PATH_STORAGE_KEY, None):
+					return Path( ui.preferences['general.pythonpackages64'] )
+				
+		return Path( self.ownerComp.par.Library.eval() )
+
+	def pipPath(self) -> Path:
+		return Path(self.path, "pip")
+
+	def installPIP(self):
+		if self.pipPath().is_dir(): 
 			logger.Log( "Pip already installed.")
 			return
 			
