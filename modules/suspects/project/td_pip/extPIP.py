@@ -11,6 +11,7 @@ import importlib
 import os
 
 import sys
+from types import ModuleType
 
 import requests
 from io import BytesIO
@@ -18,6 +19,8 @@ from zipfile import ZipFile
 
 logger = op("logger")
 USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
+
+
 class extPIP:
 	"""
 	extPIP description
@@ -25,7 +28,7 @@ class extPIP:
 	def __init__(self, ownerComp):
 		# The component to which this extension is attached
 		self.ownerComp = ownerComp
-		self.python_exec = app.binFolder + '/python.exe'
+		
 		logger.Log("Initialising Component")
 		self.localLibPath = ''
 		self.initLocalLibrary()
@@ -34,32 +37,49 @@ class extPIP:
 		#Backward Compatbiel
 		self.init_local_library = self.initLocalLibrary
 		self.Import_Module = self.ImportModule
-		
-	def InstallPackage(self, package, additional_settings = []):
-		logger.Log( "Installing Package", package)
+		self.TestPackage = self.TestModule
+
+	@property
+	def pythonExecuteable(self):
+		if sys.platform == "darwin":
+			raise NotImplemented("MAC OS is currently not supported")
+		if sys.platform == "win32":
+			return f"{app.binFolder}/python.exe"
+		if sys.platform == "linux" or sys.platform == "linux2":
+			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
+		raise Exception("Unknown operating system.")
+	
+	def InstallPackage(self, packagePipName:str, additional_settings:list[str] = []):
+		logger.Log( "Installing Package", packagePipName)
 		try:
-			subprocess.check_call([self.python_exec, "-m", "pip", "install", package, "--target", "{}".format(self.localLibPath.replace('\\', '/'))] + additional_settings)
+			subprocess.check_call([
+				self.pythonExecuteable, 
+				"-m", 
+				"pip", 
+				"install", 
+				packagePipName, 
+				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
 		except: 
-			logger.Log("Failed Installing Package", package)
+			logger.Log("Failed Installing Package", packagePipName)
 			return False
 		
 		return True
 	
-	def UpgradePackage(self, package):
-		return self.InstallPackage( package, additional_settings=["--upgrade"])
+	def UpgradePackage(self, packagePipName:str ):
+		return self.InstallPackage( packagePipName, additional_settings=["--upgrade"])
 		#subprocess.check_call([self.python_exec, "-m", "pip", "install", package])
 		
-	def UninstallPackage(self, package):
+	def UninstallPackage(self, packagePipName:str ):
 		#subprocess.check_call([self.python_exec, "-m", "pip", "uninstall", package, "--target", "{}".format(self.local_lib_path.replace('\\', '/'))])
 		debug("Uninstall no longer supported, please remove files by hand.")
 		
 		
-	def TestPackage(self, package, silent = False):
-		logger.Log("Testing for package", package)
+	def TestModule(self, module:str, silent:bool = False):
+		logger.Log("Testing for package", module:str)
 		
-		found_package = importlib.util.find_spec( package )	
-		if found_package is None:
-			logger.Log( "Package does not exist", package)
+		foundModule:ModuleType = importlib.util.find_spec( module:str )	
+		if foundModule is None:
+			logger.Log( "Package does not exist", module:str)
 			if not silent: ui.messageBox('Does not exist', 'The package is not installed')
 			return False
 			
@@ -67,27 +87,29 @@ class extPIP:
 		return True
 			
 	
-	def ImportModule(self, module, pip_name = '', additional_settings=[] ):
-		if not pip_name: pip_name = module
-		if not self.TestPackage(module, silent = True): 
-			if not self.InstallPackage(pip_name, additional_settings=additional_settings):
+	def ImportModule(self, moduelName:str, pipPackageName:str = '', additional_settings:list[str]=[] ):
+		pipPackageName = pipPackageName or moduelName
+
+		if not self.TestModule(moduelName, silent = True): 
+			if not self.InstallPackage(pipPackageName, additional_settings=additional_settings):
 				return False
-		return importlib.import_module(module)
+		return importlib.import_module(moduelName)
 	
 	def initLocalLibrary(self):
 		logger.Log( "Initializing Local Library")
 		
-		self.localLibPath = self.path.absolute()
+		self.localLibPath:str = str( self.path.absolute() )
 
 		if str( self.localLibPath ) in sys.path: 
 			logger.Log( "Local Library exists")
 			return
 		
 		self.path.mkdir( parents=True, exist_ok=True)
-		sys.path.insert(0, self.localLibPath)
 
+		sys.path.insert(0, self.localLibPath)
 		os.environ['PYTHONPATH'] = self.localLibPath
-		logger.Log( "Local Library initialised.")
+
+		logger.Log( "Local Library initialised.", self.localLibPath )
 		
 	@property
 	def path(self):
@@ -122,7 +144,7 @@ class extPIP:
 
 			
 		logger.Log( "Testing for Setuptools")	
-		if not self.TestPackage("setuptools", silent = True): 
+		if not self.TestModule("setuptools", silent = True): 
 			logger.Log( "Installing Setuptools during init." )
 			self.InstallPackage("setuptools")
 
