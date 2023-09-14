@@ -1,4 +1,5 @@
 
+
 '''Info Header Start
 Name : extPIP
 Author : Wieland@AMB-ZEPH15
@@ -12,12 +13,12 @@ import os
 
 import sys
 from types import ModuleType
-
+import ensurepip
 import requests
 from io import BytesIO
 from zipfile import ZipFile
 
-logger = op("logger")
+self = op("logger")
 USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
 
 
@@ -29,11 +30,13 @@ class extPIP:
 		# The component to which this extension is attached
 		self.ownerComp = ownerComp
 		
-		logger.Log("Initialising Component")
+		self.Log = self.ownerComp.op("logger").Log
+
+		self.Log("Initialising Component")
 		self.localLibPath = ''
 		self.initLocalLibrary()
 		self.installPIP()
-
+		
 		#Backward Compatbiel
 		self.init_local_library = self.initLocalLibrary
 		self.Import_Module = self.ImportModule
@@ -50,7 +53,7 @@ class extPIP:
 		raise Exception("Unknown operating system.")
 	
 	def InstallPackage(self, packagePipName:str, additional_settings:list[str] = []):
-		logger.Log( "Installing Package", packagePipName)
+		self.Log( "Installing Package", packagePipName)
 		try:
 			subprocess.check_call([
 				self.pythonExecuteable, 
@@ -60,7 +63,7 @@ class extPIP:
 				packagePipName, 
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
 		except: 
-			logger.Log("Failed Installing Package", packagePipName)
+			self.Log("Failed Installing Package", packagePipName)
 			return False
 		
 		return True
@@ -75,11 +78,11 @@ class extPIP:
 		
 		
 	def TestModule(self, module:str, silent:bool = False):
-		logger.Log("Testing for package", module:str)
+		self.Log("Testing for package", module)
 		
-		foundModule:ModuleType = importlib.util.find_spec( module:str )	
+		foundModule:ModuleType = importlib.util.find_spec( module )	
 		if foundModule is None:
-			logger.Log( "Package does not exist", module:str)
+			self.Log( "Package does not exist", module )
 			if not silent: ui.messageBox('Does not exist', 'The package is not installed')
 			return False
 			
@@ -96,12 +99,12 @@ class extPIP:
 		return importlib.import_module(moduelName)
 	
 	def initLocalLibrary(self):
-		logger.Log( "Initializing Local Library")
+		self.Log( "Initializing Local Library")
 		
 		self.localLibPath:str = str( self.path.absolute() )
 
 		if str( self.localLibPath ) in sys.path: 
-			logger.Log( "Local Library exists")
+			self.Log( "Local Library exists")
 			return
 		
 		self.path.mkdir( parents=True, exist_ok=True)
@@ -109,7 +112,7 @@ class extPIP:
 		sys.path.insert(0, self.localLibPath)
 		os.environ['PYTHONPATH'] = self.localLibPath
 
-		logger.Log( "Local Library initialised.", self.localLibPath )
+		self.Log( "Local Library initialised.", self.localLibPath )
 		
 	@property
 	def path(self):
@@ -129,25 +132,25 @@ class extPIP:
 	def pipPath(self) -> Path:
 		return Path(self.path, "pip")
 
-	def installPIP(self):
-		if self.pipPath().is_dir(): 
-			logger.Log( "Pip already installed.")
-			return
-			
-		response = requests.get( "https://pypi.org/pypi/pip/json" )
-		for url_dict in response.json()["urls"]:
-			if url_dict["packagetype"] != "bdist_wheel": continue
-			byte_data = requests.get( url_dict["url"] ).content
-			filelike_object = BytesIO( byte_data )
-			with ZipFile(filelike_object, 'r') as zip_file:
+	def unpackFromEnsurePip(self):
+		for whlFile in Path( app.binFolder, "Lib\ensurepip\_bundled").iterdir():
+			if whlFile.suffix != ".whl": continue
+			self.Log("Installing PIP-Element from", whlFile)
+			with ZipFile(whlFile, 'r') as zip_file:
 				zip_file.extractall(path = self.path)
 
-			
-		logger.Log( "Testing for Setuptools")	
-		if not self.TestModule("setuptools", silent = True): 
-			logger.Log( "Installing Setuptools during init." )
-			self.InstallPackage("setuptools")
-
+	def installPIP(self):
+		if self.pipPath().is_dir(): 
+			self.Log( "Pip already installed.")
+			return
+		
+		self.unpackFromEnsurePip()
+		
+		#upgrading PIP and setupTools to latest versions!
+		self.InstallPackage( "pip", additional_settings=["--upgrade"])
+		self.InstallPackage( "setuptools", additional_settings=["--upgrade"])
+	
+		
 
 
 
