@@ -18,9 +18,7 @@ import requests
 from io import BytesIO
 from zipfile import ZipFile
 
-self = op("logger")
 USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
-
 
 class extPIP:
 	"""
@@ -33,6 +31,7 @@ class extPIP:
 		self.Log = self.ownerComp.op("logger").Log
 
 		self.Log("Initialising Component")
+
 		self.localLibPath = ''
 		self.initLocalLibrary()
 		self.installPIP()
@@ -140,7 +139,7 @@ class extPIP:
 				zip_file.extractall(path = self.path)
 
 	def installPIP(self):
-		if self.pipPath().is_dir(): 
+		if self.TestModule("pip", silent = True):
 			self.Log( "Pip already installed.")
 			return
 		
