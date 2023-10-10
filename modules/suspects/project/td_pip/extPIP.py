@@ -13,9 +13,6 @@ import os
 
 import sys
 from types import ModuleType
-import ensurepip
-import requests
-from io import BytesIO
 from zipfile import ZipFile
 
 USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
@@ -38,7 +35,7 @@ class extPIP:
 		
 		#Backward Compatbiel
 		self.init_local_library = self.initLocalLibrary
-		self.Import_Module = self.ImportModule
+		#self.Import_Module = self.ImportModule
 		self.TestPackage = self.TestModule
 
 	@property
@@ -78,8 +75,11 @@ class extPIP:
 		
 	def TestModule(self, module:str, silent:bool = False):
 		self.Log("Testing for package", module)
-		
-		foundModule:ModuleType = importlib.util.find_spec( module )	
+		try:
+			foundModule:ModuleType = importlib.util.find_spec( module )	
+		except ModuleNotFoundError as exc:
+			self.Log( "Module not Found Exception!", exc )
+			return False
 		if foundModule is None:
 			self.Log( "Package does not exist", module )
 			if not silent: ui.messageBox('Does not exist', 'The package is not installed')
@@ -88,14 +88,16 @@ class extPIP:
 		if not silent: ui.messageBox('Does exist', 'The package is installed')
 		return True
 			
+	def Import_Module( self, module_name:str, pip_name = "", additional_settings = []):
+		return self.ImportModule( module_name, pipPackageName=pip_name, additionalSettings=additional_settings)
 	
-	def ImportModule(self, moduelName:str, pipPackageName:str = '', additional_settings:list[str]=[] ):
-		pipPackageName = pipPackageName or moduelName
+	def ImportModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:list[str]=[] ):
+		pipPackageName = pipPackageName or moduleName
 
-		if not self.TestModule(moduelName, silent = True): 
-			if not self.InstallPackage(pipPackageName, additional_settings=additional_settings):
+		if not self.TestModule(moduleName, silent = True): 
+			if not self.InstallPackage(pipPackageName, additional_settings=additionalSettings):
 				return False
-		return importlib.import_module(moduelName)
+		return importlib.import_module(moduleName)
 	
 	def initLocalLibrary(self):
 		self.Log( "Initializing Local Library")
