@@ -4,13 +4,13 @@
 Name : extPIP
 Author : Wieland@AMB-ZEPH15
 Saveorigin : Project.toe
-Saveversion : 2022.28040
+Saveversion : 2022.35320
 Info Header End'''
 from pathlib import Path
 import subprocess
 import importlib
 import os
-
+from typing import List
 import sys
 from types import ModuleType
 from zipfile import ZipFile
@@ -41,14 +41,46 @@ class extPIP:
 	@property
 	def pythonExecuteable(self):
 		if sys.platform == "darwin":
-			raise NotImplemented("MAC OS is currently not supported")
+			return f"{app.binFolder}/python"
+			self.Log("Checking is this might actually work on macos.. We Will see.")
+			#raise NotImplemented("MAC OS is currently not supported")
 		if sys.platform == "win32":
 			return f"{app.binFolder}/python.exe"
 		if sys.platform == "linux" or sys.platform == "linux2":
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
 		raise Exception("Unknown operating system.")
 	
-	def InstallPackage(self, packagePipName:str, additional_settings:list[str] = []):
+	def _Freeze( self, additional_settings:List[str]=[]):
+		outputPath = Path("./requirements.txt")
+		
+		result = subprocess.check_output([
+				self.pythonExecuteable, 
+				"-m", 
+				"pip", 
+				"freeze", 
+				#">", str(outputPath.absolute() ).replace('\\', '/'),
+				"--path", self.localLibPath.replace('\\', '/') 
+				] + additional_settings )
+		outputPath.touch()
+		outputPath.write_bytes( result )
+	
+	def _InstallRequirements(self, additional_settings:List[str] = []):
+		self.Log( "Installing requirements.txt")
+		try:
+			subprocess.check_call([
+				self.pythonExecuteable, 
+				"-m", 
+				"pip", 
+				"install", 
+				"-r", "./requirements.txt"
+				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
+		except: 
+			self.Log("Failed Installing requirements.tt")
+			return False
+		
+		return True
+
+	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
 		self.Log( "Installing Package", packagePipName)
 		try:
 			subprocess.check_call([
@@ -88,10 +120,10 @@ class extPIP:
 		if not silent: ui.messageBox('Does exist', 'The package is installed')
 		return True
 			
-	def Import_Module( self, module_name:str, pip_name = "", additional_settings = []):
+	def Import_Module( self, module_name:str, pip_name = "", additional_settings:List[str] = []):
 		return self.ImportModule( module_name, pipPackageName=pip_name, additionalSettings=additional_settings)
 	
-	def ImportModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:list[str]=[] ):
+	def ImportModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:List[str]=[] ):
 		pipPackageName = pipPackageName or moduleName
 
 		if not self.TestModule(moduleName, silent = True): 
@@ -144,7 +176,7 @@ class extPIP:
 		if self.TestModule("pip", silent = True):
 			self.Log( "Pip already installed.")
 			return
-		
+
 		self.unpackFromEnsurePip()
 		
 		#upgrading PIP and setupTools to latest versions!
