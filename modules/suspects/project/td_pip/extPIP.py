@@ -1,5 +1,3 @@
-
-
 '''Info Header Start
 Name : extPIP
 Author : Wieland@AMB-ZEPH15
@@ -10,12 +8,16 @@ from pathlib import Path
 import subprocess
 import importlib
 import os
-from typing import List
+from typing import List, TypeVar, cast, Generic
+
 import sys
 from types import ModuleType
 from zipfile import ZipFile
 
 USE_PREFFERENCE_PATH_STORAGE_KEY = "TD_PIP_USE_PREFERENCE"
+T = TypeVar("T")
+
+
 
 class extPIP:
 	"""
@@ -119,18 +121,21 @@ class extPIP:
 			
 		if not silent: ui.messageBox('Does exist', 'The package is installed')
 		return True
-			
-	def Import_Module( self, module_name:str, pip_name = "", additional_settings:List[str] = []):
-		return self.ImportModule( module_name, pipPackageName=pip_name, additionalSettings=additional_settings)
-	
-	def ImportModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:List[str]=[] ):
-		pipPackageName = pipPackageName or moduleName
 
+	def Import_Module( self, module_name:str, pip_name = "", additional_settings:List[str] = []) -> ModuleType:
+		return self.ImportModule( module_name, pipPackageName=pip_name, additionalSettings=additional_settings)
+		
+
+	def ImportModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:List[str]=[] ):
+		_pipPackageName = pipPackageName or moduleName
 		if not self.TestModule(moduleName, silent = True): 
-			if not self.InstallPackage(pipPackageName, additional_settings=additionalSettings):
-				return False
+			if not self.InstallPackage(_pipPackageName, additional_settings=additionalSettings):
+				raise ModuleNotFoundError
 		return importlib.import_module(moduleName)
-	
+
+		
+
+
 	def initLocalLibrary(self):
 		self.Log( "Initializing Local Library")
 		
@@ -184,9 +189,4 @@ class extPIP:
 		self.InstallPackage( "setuptools", additional_settings=["--upgrade"])
 	
 		
-
-
-
-
-
 
