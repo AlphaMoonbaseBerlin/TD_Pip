@@ -41,22 +41,25 @@ class extPIP:
 		self.TestPackage = self.TestModule
 
 	@property
-	def pythonExecuteable(self):
-		if sys.platform == "darwin":
-			return f"{app.binFolder}/python"
-			self.Log("Checking is this might actually work on macos.. We Will see.")
-			#raise NotImplemented("MAC OS is currently not supported")
+	def _pythonExecuteable(self):
+		try:
+			return app.pythonExecutable
+		except AttributeError:
+			return self._backwarsdComptaiblePythonExecuteable
+
+	@property
+	def _backwarsdComptaiblePythonExecuteable(self):
 		if sys.platform == "win32":
 			return f"{app.binFolder}/python.exe"
 		if sys.platform == "linux" or sys.platform == "linux2":
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
-		raise Exception("Unknown operating system.")
+		raise NotImplemented(f"{sys.platform} OS Not Supported.")
 	
 	def _Freeze( self, additional_settings:List[str]=[]):
 		outputPath = Path("./requirements.txt")
 		
 		result = subprocess.check_output([
-				self.pythonExecuteable, 
+				self._pythonExecuteable, 
 				"-m", 
 				"pip", 
 				"freeze", 
@@ -70,7 +73,7 @@ class extPIP:
 		self.Log( "Installing requirements.txt")
 		try:
 			subprocess.check_call([
-				self.pythonExecuteable, 
+				self._pythonExecuteable, 
 				"-m", 
 				"pip", 
 				"install", 
@@ -86,7 +89,7 @@ class extPIP:
 		self.Log( "Installing Package", packagePipName)
 		try:
 			subprocess.check_call([
-				self.pythonExecuteable, 
+				self._pythonExecuteable, 
 				"-m", 
 				"pip", 
 				"install", 
