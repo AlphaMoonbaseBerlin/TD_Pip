@@ -2,7 +2,7 @@
 Name : extPIP
 Author : Wieland@AMB-ZEPH15
 Saveorigin : Project.toe
-Saveversion : 2022.35320
+Saveversion : 2023.11760
 Info Header End'''
 from pathlib import Path
 import subprocess
@@ -33,7 +33,10 @@ class extPIP:
 
 		self.localLibPath = ''
 		self.initLocalLibrary()
-		self.installPIP()
+
+		# 2023 now ships its own python, which is nice. So no need to install it in to our little local env.
+		if int(app.version.split(".")[0]) < 2023:
+			self.installPIP()
 		
 		#Backward Compatbiel
 		self.init_local_library = self.initLocalLibrary
@@ -55,32 +58,36 @@ class extPIP:
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
 		raise NotImplemented(f"{sys.platform} OS Not Supported.")
 	
-	def _Freeze( self, additional_settings:List[str]=[]):
+	def Freeze( self, additional_settings:List[str]=[]):
 		outputPath = Path("./requirements.txt")
-		
+		self.Log( "Writing requirements.txt")
 		result = subprocess.check_output([
 				self._pythonExecuteable, 
 				"-m", 
 				"pip", 
 				"freeze", 
-				#">", str(outputPath.absolute() ).replace('\\', '/'),
 				"--path", self.localLibPath.replace('\\', '/') 
 				] + additional_settings )
 		outputPath.touch()
 		outputPath.write_bytes( result )
 	
-	def _InstallRequirements(self, additional_settings:List[str] = []):
+	def InstallRequirements(self, additional_settings:List[str] = []):
 		self.Log( "Installing requirements.txt")
 		try:
+			pass
+			#something iffy with the built in way of handling it, using our own here.
+			# with Path("./requirements.txt").open() as requirementsFile:
+			#	for line in requirementsFile:
+			#		self.InstallPackage( line, additional_settings=additional_settings )
 			subprocess.check_call([
 				self._pythonExecuteable, 
 				"-m", 
 				"pip", 
 				"install", 
-				"-r", "./requirements.txt"
+				"-r", os.path.abspath( "./requirements.txt"),
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
-		except: 
-			self.Log("Failed Installing requirements.tt")
+		except Exception as e: 
+			self.Log("Failed Installing requirements.txt", e)
 			return False
 		
 		return True
@@ -95,8 +102,8 @@ class extPIP:
 				"install", 
 				packagePipName, 
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
-		except: 
-			self.Log("Failed Installing Package", packagePipName)
+		except Exception as e: 
+			self.Log("Failed Installing Package", packagePipName, e)
 			return False
 		
 		return True
