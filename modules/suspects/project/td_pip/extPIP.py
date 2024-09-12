@@ -2,12 +2,13 @@
 Name : extPIP
 Author : Wieland@AMB-ZEPH15
 Saveorigin : Project.toe
-Saveversion : 2023.11760
+Saveversion : 2023.11880
 Info Header End'''
 from pathlib import Path
 import subprocess
 import importlib
 import os
+import shutil
 from typing import List, TypeVar, cast, Generic
 
 import sys
@@ -58,6 +59,59 @@ class extPIP:
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
 		raise NotImplemented(f"{sys.platform} OS Not Supported.")
 	
+	def RemovePackagedPackage(self, packagePipName:str):
+		try:
+			self.ownerComp.vfs[packagePipName].destroy()
+		except:
+			pass
+
+
+	def unpackPackage(self, packagePipName:str):
+		self.Log("Checking if package is local existent.", packagePipName)
+		localName = f"{packagePipName}.zip"
+		exportDestination = f"TDImportCache\\Temp\\PIP_Export\\{packagePipName}"
+		try:
+			shutil.unpack_archive(
+				self.ownerComp.vfs[localName].export(
+					"TDImportCache\\Temp", pattern = f"localName.zip"
+				)[0],
+				exportDestination,
+				"zip"
+			) 
+			return exportDestination
+		except:
+			return None
+
+	def PackagePackage(self, packagePipName:str, additional_settings:List[str] = []):
+		self.Log( "Packaging Package", packagePipName)
+		try:
+			downloadDestination = "TDImportCache\\Temp\\PIP_Download"
+			archiveName = f"TDImportCache\\Temp\\{packagePipName}"
+			subprocess.check_call([
+				self._pythonExecuteable, 
+				"-m", 
+				"pip", 
+				"download", 
+				packagePipName, 
+				"--dest", downloadDestination])
+			
+			packageArchive = shutil.make_archive(
+				archiveName,
+				"zip",
+				downloadDestination
+				)
+			self.ownerComp.vfs.addFile(
+				packageArchive
+			)
+			os.remove( downloadDestination )
+			os.remove( archiveName  )
+
+		except Exception as e: 
+			self.Log("Failed Packaging Package", packagePipName, e)
+			return False
+		
+		return True
+
 	def Freeze( self, additional_settings:List[str]=[]):
 		outputPath = Path("./requirements.txt")
 		self.Log( "Writing requirements.txt")
@@ -94,6 +148,11 @@ class extPIP:
 
 	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
 		self.Log( "Installing Package", packagePipName)
+
+		if packagedPackage := self.unpackPackage( packagePipName):
+			self.Log("Found package packaged. Installing from local.")
+			additional_settings += ["--find-links", packagedPackage]
+		
 		try:
 			subprocess.check_call([
 				self._pythonExecuteable, 
