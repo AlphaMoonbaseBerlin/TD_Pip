@@ -11,6 +11,8 @@ import os
 import shutil
 from typing import List, TypeVar, cast, Generic
 
+import tempfile
+
 import sys
 from types import ModuleType
 from zipfile import ZipFile
@@ -59,55 +61,53 @@ class extPIP:
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
 		raise NotImplemented(f"{sys.platform} OS Not Supported.")
 	
-	def RemovePackagedPackage(self, packagePipName:str):
+	def RemoveCachedPackage(self, packagePipName:str):
 		try:
-			self.ownerComp.vfs[packagePipName].destroy()
+			self.ownerComp.vfs[f"{packagePipName}.zip"].destroy()
 		except:
 			pass
 
 
 	def unpackPackage(self, packagePipName:str):
 		self.Log("Checking if package is local existent.", packagePipName)
-		localName = f"{packagePipName}.zip"
-		exportDestination = f"TDImportCache\\Temp\\PIP_Export\\{packagePipName}"
+		cachedName = f"{packagePipName}.zip"
+		unpackDir = Path("TDImportCache/PIP_Cache")
 		try:
+			exportedArchive = self.ownerComp.vfs[cachedName].export(
+						unpackDir
+					)
 			shutil.unpack_archive(
-				self.ownerComp.vfs[localName].export(
-					"TDImportCache\\Temp", pattern = f"localName.zip"
-				)[0],
-				exportDestination,
-				"zip"
-			) 
-			return exportDestination
-		except:
+					exportedArchive,
+					extract_dir=unpackDir
+				) 
+			return unpackDir
+		except Exception as e:
+			self.Log("No cached package found", e)
 			return None
 
-	def PackagePackage(self, packagePipName:str, additional_settings:List[str] = []):
+	def CachePackage(self, packagePipName:str, additional_settings:List[str] = []):
 		self.Log( "Packaging Package", packagePipName)
 		try:
-			downloadDestination = "TDImportCache\\Temp\\PIP_Download"
-			archiveName = f"TDImportCache\\Temp\\{packagePipName}"
-			subprocess.check_call([
-				self._pythonExecuteable, 
-				"-m", 
-				"pip", 
-				"download", 
-				packagePipName, 
-				"--dest", downloadDestination])
-			
-			packageArchive = shutil.make_archive(
-				archiveName,
-				"zip",
-				downloadDestination
+			with tempfile.TemporaryDirectory() as downloadDestination:
+				subprocess.check_call([
+					self._pythonExecuteable, 
+					"-m", 
+					"pip", 
+					"download", 
+					packagePipName, 
+					"--dest", downloadDestination])
+				
+				packageArchive = shutil.make_archive(
+					packagePipName,
+					"zip",
+					downloadDestination
+					)
+				self.ownerComp.vfs.addFile(
+					packageArchive
 				)
-			self.ownerComp.vfs.addFile(
-				packageArchive
-			)
-			os.remove( downloadDestination )
-			os.remove( archiveName  )
 
 		except Exception as e: 
-			self.Log("Failed Packaging Package", packagePipName, e)
+			self.Log("Failed Caching Package", packagePipName, e)
 			return False
 		
 		return True
