@@ -61,24 +61,29 @@ class extPIP:
 			raise NotImplemented("So, you are running TD on Linux? Sweet! Still, no TD-PIP for you either.")
 		raise NotImplemented(f"{sys.platform} OS Not Supported.")
 	
+
+	@property
+	def packageCache(self):
+		return self.ownerComp.op("cacheRepo").Repo
+	
 	def RemoveCachedPackage(self, packagePipName:str):
 		try:
-			self.ownerComp.vfs[f"{packagePipName}.zip"].destroy()
+			self.packageCache.vfs[f"{packagePipName}"].destroy()
 		except:
 			pass
 
 
 	def unpackPackage(self, packagePipName:str):
 		self.Log("Checking if package is local existent.", packagePipName)
-		cachedName = f"{packagePipName}.zip"
 		unpackDir = Path("TDImportCache/PIP_Cache")
 		try:
-			exportedArchive = self.ownerComp.vfs[cachedName].export(
+			exportedArchive = self.packageCache.vfs[packagePipName].export(
 						unpackDir
 					)
 			shutil.unpack_archive(
 					exportedArchive,
-					extract_dir=unpackDir
+					extract_dir=unpackDir,
+					format="zip"
 				) 
 			return unpackDir
 		except Exception as e:
@@ -89,6 +94,7 @@ class extPIP:
 		self.Log( "Packaging Package", packagePipName)
 		try:
 			with tempfile.TemporaryDirectory() as downloadDestination:
+				debug( downloadDestination)
 				subprocess.check_call([
 					self._pythonExecuteable, 
 					"-m", 
@@ -100,11 +106,14 @@ class extPIP:
 				packageArchive = shutil.make_archive(
 					packagePipName,
 					"zip",
-					downloadDestination
+					root_dir= downloadDestination
 					)
-				self.ownerComp.vfs.addFile(
-					packageArchive
+				self.RemoveCachedPackage( packagePipName )
+				self.packageCache.vfs.addFile(
+					packageArchive,
+					overrideName = packagePipName
 				)
+				self.packageCache.cook( force = True, recurse = True )
 
 		except Exception as e: 
 			self.Log("Failed Caching Package", packagePipName, e)
@@ -151,7 +160,7 @@ class extPIP:
 
 		if packagedPackage := self.unpackPackage( packagePipName):
 			self.Log("Found package packaged. Installing from local.")
-			additional_settings += ["--find-links", packagedPackage]
+			additional_settings += ["--find-links", packagedPackage, "--no-index"]
 		
 		try:
 			subprocess.check_call([
