@@ -160,7 +160,9 @@ class extPIP:
 
 		if packagedPackage := self.unpackPackage( packagePipName):
 			self.Log("Found package packaged. Installing from local.")
-			additional_settings += ["--find-links", packagedPackage, "--no-index"]
+			additional_settings += ["--find-links", packagedPackage]
+			if self.ownerComp.par.Useonlycachedpackage.eval():
+				additional_settings += ["--no-index"]
 		
 		try:
 			subprocess.check_call([
