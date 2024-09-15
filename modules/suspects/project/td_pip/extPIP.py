@@ -121,8 +121,8 @@ class extPIP:
 		
 		return True
 
-	def Freeze( self, additional_settings:List[str]=[]):
-		outputPath = Path("./requirements.txt")
+	def Freeze( self, requirementsFilepath = "", additional_settings:List[str]=[]):
+		outputPath = Path( requirementsFilepath or self.ownerComp.par.Requirementsfile.eval() )
 		self.Log( "Writing requirements.txt")
 		result = subprocess.check_output([
 				self._pythonExecuteable, 
@@ -134,7 +134,7 @@ class extPIP:
 		outputPath.touch()
 		outputPath.write_bytes( result )
 	
-	def InstallRequirements(self, additional_settings:List[str] = []):
+	def InstallRequirements(self,requirementsFilepath = "", additional_settings:List[str] = []):
 		self.Log( "Installing requirements.txt")
 		try:
 			pass
@@ -147,7 +147,7 @@ class extPIP:
 				"-m", 
 				"pip", 
 				"install", 
-				"-r", os.path.abspath( "./requirements.txt"),
+				"-r", os.path.abspath( Path( requirementsFilepath or self.ownerComp.par.Requirementsfile.eval() ) ),
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
 		except Exception as e: 
 			self.Log("Failed Installing requirements.txt", e)
