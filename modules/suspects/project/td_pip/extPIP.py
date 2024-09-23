@@ -9,7 +9,7 @@ import subprocess
 import importlib
 import os
 import shutil
-from typing import List, TypeVar, cast, Generic
+from typing import List, TypeVar, cast, Generic, Union
 
 import tempfile
 
@@ -155,6 +155,12 @@ class extPIP:
 		
 		return True
 
+	def InstallPackages(self, packagePipNames:Union[List[str], str], additionalSettings:List[str]=[]):
+		if isinstance( packagePipNames, str): packagePipNames = tdu.split( packagePipNames )
+		for packageName in packagePipNames:
+			self.InstallPackage( packageName, additional_settings=additionalSettings)
+
+		 
 	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
 		self.Log( "Installing Package", packagePipName)
 
@@ -213,7 +219,10 @@ class extPIP:
 				raise ModuleNotFoundError
 		return importlib.import_module(moduleName)
 
-		
+	def PrepareModule(self, moduleName:str, pipPackageName:str = '', additionalSettings:List[str]=[] ):
+		if self.TestModule( moduleName, silent=True): return True
+		return self.InstallPackage(pipPackageName or moduleName, additional_settings=additionalSettings)
+	
 
 
 	def initLocalLibrary(self):
