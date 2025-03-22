@@ -1,6 +1,6 @@
 '''Info Header Start
 Name : extPIP
-Author : Wieland@AMB-ZEPH15
+Author : Wieland PlusPlusOne@AMB-ZEPH15
 Saveorigin : TD_Pip.toe
 Saveversion : 2023.12000
 Info Header End'''
@@ -66,11 +66,13 @@ class extPIP:
 			def __init__(mountSelf, 
 				moduleName:str, 
 				pipPackageName:str = '',
+				additionalSettings = [],
 				clearModules = False):
 
 				mountSelf.clearModules = clearModules
 				mountSelf.moduleName = moduleName
 				mountSelf.pipPackagName = pipPackageName
+				mountSelf.additionalSettings = additionalSettings
 				pass
 
 			def __enter__(mountSelf):
@@ -78,9 +80,14 @@ class extPIP:
 					mountSelf.modules = sys.modules.copy()
 					sys.modules = {}
 				self.mountEnv()
-				self.PrepareModule( 
+				#self.PrepareModule( 
+				#	mountSelf.moduleName, 
+				#	pipPackageName = mountSelf.pipPackagName
+				#)
+				return self.ImportModule( 
 					mountSelf.moduleName, 
-					pipPackageName = mountSelf.pipPackagName
+					pipPackageName		= mountSelf.pipPackagName,
+					additionalSettings	= mountSelf.additionalSettings
 				)
 
 			def __exit__(mountSelf, type, value, traceback):
@@ -153,13 +160,14 @@ class extPIP:
 		self.Log( "Packaging Package", packagePipName)
 		try:
 			with tempfile.TemporaryDirectory() as downloadDestination:
-				debug( downloadDestination)
+				
 				subprocess.check_call([
 					self._pythonExecuteable, 
 					"-m", 
 					"pip", 
 					"download", 
 					packagePipName, 
+					"--index-url", self.ownerComp.par.Index.eval(),
 					"--dest", downloadDestination] + additional_settings)
 				
 				packageArchive = shutil.make_archive(
@@ -212,6 +220,7 @@ class extPIP:
 				"-m", 
 				"pip", 
 				"install", 
+				"--index-url", self.ownerComp.par.Index.eval(),
 				"-r", os.path.abspath( Path( requirementsFilepath or self.ownerComp.par.Requirementsfile.eval() ) ),
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
 		except Exception as e: 
@@ -228,7 +237,11 @@ class extPIP:
 		for packageName in packagePipNames:
 			self.InstallPackage( packageName, additional_settings=additionalSettings)
 
-		 
+		
+	def _addPackageToDependencies(self, packageName:str):
+		dependenciesTables = self.ownerComp.op("dependenciesRepo").Repo
+		dependenciesTables.row( packageName ) or dependenciesTables.appendRow([packageName])
+		
 	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
 		"""
 			Install the defined package from PIP, even if it is already installed. So handle with care.
@@ -248,7 +261,10 @@ class extPIP:
 				"pip", 
 				"install", 
 				packagePipName, 
+				"--index-url", self.ownerComp.par.Index.eval(),
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
+			self._addPackageToDependencies( packagePipName )
+		
 		except Exception as e: 
 			self.Log("Failed Installing Package", packagePipName, e)
 			return False
