@@ -240,13 +240,16 @@ class extPIP:
 		
 	def _addPackageToDependencies(self, packageName:str):
 		dependenciesTables = self.ownerComp.op("dependenciesRepo").Repo
-		dependenciesTables.row( packageName ) or dependenciesTables.appendRow([packageName])
+		dependenciesTables.row( packageName ) or dependenciesTables.appendRow([packageName, self.ownerComp.par.Index.eval()])
 		
 	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
 		"""
 			Install the defined package from PIP, even if it is already installed. So handle with care.
 		"""
 		self.Log( "Installing Package", packagePipName)
+		index = self.ownerComp.par.Index.eval()
+
+		packagePipName, index = self.ownerComp.op("callbackManager").Do_Callback("onPreInstall", packagePipName, index) or (packagePipName, index)
 
 		if packagedPackage := self.unpackPackage( packagePipName):
 			self.Log("Found package packaged. Installing from local.")
@@ -261,7 +264,7 @@ class extPIP:
 				"pip", 
 				"install", 
 				packagePipName, 
-				"--index-url", self.ownerComp.par.Index.eval(),
+				"--index-url", index,
 				"--target", self.localLibPath.replace('\\', '/')] + additional_settings)
 			self._addPackageToDependencies( packagePipName )
 		
