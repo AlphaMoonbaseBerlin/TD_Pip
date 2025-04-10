@@ -1,0 +1,23 @@
+version = 1
+revision = 1
+requires-python = ">=3.11.1"
+
+[[package]]
+name = "pip-install-test"
+version = "0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/ed/a5e0d003f40446334d7f3ba4223079253254ccdff4bfad663ee8e6ae4b0b/pip-install-test-0.5.tar.gz", hash = "sha256:c33c46ced9865b59963e86e54901947520bdb73bf91849cddbb000742598bb67", size = 1372 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/8e/4fbc92846184e1080af77da38d55928a5486e0bc5e2ec8342c7db378d7f1/pip_install_test-0.5-py3-none-any.whl", hash = "sha256:623887f5ce0b4695ec3c0503aa4f394253a403e2bb952417b3a778f0802dbe0b", size = 1707 },
+]
+
+[[package]]
+name = "td-pip"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "pip-install-test" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pip-install-test", specifier = ">=0.5" }]
