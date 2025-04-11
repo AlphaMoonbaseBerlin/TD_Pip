@@ -115,7 +115,7 @@ class extTDuv:
 	
 	@property
 	def localLibPath(self):
-		return ".venv/lib/site-packages"
+		return ".venv/Lib/site-packages"
 	
 
 	def mountEnv(self):
