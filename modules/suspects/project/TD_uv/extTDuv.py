@@ -98,6 +98,7 @@ class extTDuv:
 			return "uv-aarch64-apple-darwin.tar.gz"
 	
 		raise NotImplemented(f"{sys.platform} OS Not Supported.")
+	
 	@property
 	def checkUv(self):
 		result = self.runUvCommand(["version", "-q"])
