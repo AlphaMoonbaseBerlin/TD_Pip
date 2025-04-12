@@ -121,8 +121,8 @@ class extTDuv:
 	
 	@property
 	def localLibPath(self):
-		return os.path.abspath(".venv/Lib/site-packages")
-	
+		#return os.path.abspath(".venv/Lib/site-packages")
+		return ".venv/Lib/site-packages"
 
 	def mountEnv(self):
 		self._pathCopy = copy( sys.path )
@@ -153,7 +153,11 @@ class extTDuv:
 		
 	@UvRequired
 	def SetupProject(self):
-		return self.runUvCommand(f"init --python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}") == 0
+		result = self.runUvCommand(f"init --python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}") == 0
+		self.runUvCommand("add pip-install-test")
+		self.runUvCommand("remove pip-install-test")
+		importlib.invalidate_caches()
+		return result
 
 	@UvRequired
 	@ProjectRequired
