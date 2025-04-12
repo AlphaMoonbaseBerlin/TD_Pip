@@ -163,7 +163,7 @@ class extTDuv:
 			if element in ["--index", "-i"]: 
 				sourceIndex = additional_settings[ _index +1 ]
 				break
-		self.ownerComp.op("dependecyTableRepo").Repo.appendRow([packagePipName, sourceIndex])
+		self.ownerComp.op("dependecyTableRepo").Repo.row( packagePipName ) or self.ownerComp.op("dependecyTableRepo").Repo.appendRow([packagePipName, sourceIndex])
 		return self.runUvCommand(["add", packagePipName] + additional_settings) == 0
 
 
