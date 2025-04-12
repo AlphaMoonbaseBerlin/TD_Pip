@@ -60,11 +60,10 @@ class extTDuv:
 
 		class MountModule(object):
 			def __init__(mountSelf, 
-				moduleName:str, 
-				pipPackageName:str = '',
-				additionalSettings = [],
-				clearModules = False):
-
+					moduleName:str, 
+					pipPackageName:str = '',
+					additionalSettings = [],
+					clearModules = False):
 				mountSelf.clearModules = clearModules
 				mountSelf.moduleName = moduleName
 				mountSelf.pipPackagName = pipPackageName
@@ -76,16 +75,23 @@ class extTDuv:
 					mountSelf.modules = sys.modules.copy()
 					sys.modules = {}
 				self.mountEnv()
-				return self.ImportModule( 
-					mountSelf.moduleName, 
-					pipPackageName		= mountSelf.pipPackagName,
-					additionalSettings	= mountSelf.additionalSettings
-				)
+				try:
+					return self.ImportModule( 
+						mountSelf.moduleName, 
+						pipPackageName		= mountSelf.pipPackagName,
+						additionalSettings	= mountSelf.additionalSettings
+					)
+				except Exception as e:
+					mountSelf.__exit__(type(e), e, None)
+					raise e
 
-			def __exit__(mountSelf, type, value, traceback):
+			def __exit__(mountSelf, exc_type, exc_val, exc_tb):
+				debug("Exiting Mound Module")
 				self.unmountEnv()
 				if mountSelf.clearModules:
 					sys.modules = mountSelf.modules	
+				return True
+			
 		self.MountModule = MountModule
 
 
@@ -115,7 +121,7 @@ class extTDuv:
 	
 	@property
 	def localLibPath(self):
-		return ".venv/Lib/site-packages"
+		return os.path.abspath(".venv/Lib/site-packages")
 	
 
 	def mountEnv(self):
@@ -152,6 +158,12 @@ class extTDuv:
 	@UvRequired
 	@ProjectRequired
 	def InstallPackage(self, packagePipName:str, additional_settings:List[str] = []):
+		sourceIndex = ""
+		for _index, element in enumerate( additional_settings ):
+			if element in ["--index", "-i"]: 
+				sourceIndex = additional_settings[ _index +1 ]
+				break
+		self.ownerComp.op("dependecyTableRepo").Repo.appendRow([packagePipName, sourceIndex])
 		return self.runUvCommand(["add", packagePipName] + additional_settings) == 0
 
 
@@ -184,6 +196,7 @@ class extTDuv:
 			Use instead of the default import method.
 			Deprecatd. use PrepareModule instead for proper code completion.
 		"""
+
 		_pipPackageName = pipPackageName or moduleName
 		if not self.TestModule(moduleName, silent = True): 
 			if not self.InstallPackage(_pipPackageName, additional_settings=additionalSettings):
