@@ -7,5 +7,9 @@ TD-Pip implements pip in a complete native way without any external dependencies
 
 ## TD_UV
 Implements the UV-PackageManager https://github.com/astral-sh/uv
-
 No manual isnatllation required but it does either use the gobal installed UV or downloads and prepares a UV-Installation on demand.
+
+## TD_CONDA
+Hands off installer for conda. Can be used to install and run subprocesses that require many dependencies. In genera the heaviest solution in this repo.
+
+
