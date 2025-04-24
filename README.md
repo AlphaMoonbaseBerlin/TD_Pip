@@ -9,7 +9,3 @@ TD-Pip implements pip in a complete native way without any external dependencies
 Implements the UV-PackageManager https://github.com/astral-sh/uv
 
 No manual isnatllation required but it does either use the gobal installed UV or downloads and prepares a UV-Installation on demand.
-
-# Version
-2022.28040
-
