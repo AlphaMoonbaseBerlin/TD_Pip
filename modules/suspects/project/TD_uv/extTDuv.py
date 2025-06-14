@@ -3,7 +3,7 @@
 '''Info Header Start
 Name : extTDuv
 Author : Wieland PlusPlusOne@AMB-ZEPH15
-Saveorigin : TD_Pip.toe
+Saveorigin : PyPaIn.toe
 Saveversion : 2023.12000
 Info Header End'''
 import subprocess
@@ -117,7 +117,9 @@ class extTDuv:
 				return True
 			
 		self.MountModule = MountModule
-
+		if self.ownerComp.par.Automountenvironment.eval():
+			self.SetupVenv()
+			self.mountEnv()
 
 	def UvDownloadTarget(self):
 		if sys.platform == "win32":
