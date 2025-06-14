@@ -1,9 +1,10 @@
 [project]
-name = "td-pip"
+name = "PyPaIn"
 version = "0.1.0"
-description = "Add your description here"
+description = "A collection of components to manage venv for TD-Projects and packages."
 readme = "README.md"
 requires-python = ">=3.11.1"
+td-version = "2023.12000"
 dependencies = [
     "pip-install-test>=0.5",
 ]
