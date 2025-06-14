@@ -1,3 +1,5 @@
+### WINDOWS ONLY! MacOS Devs, feel welcome to send in a PR!
+
 # TD_PyPain - Python Package Installer
 A collection of components to handle virtual 3nvironments and external python packages from withing touchdesigner with a hands-off approach.
 
