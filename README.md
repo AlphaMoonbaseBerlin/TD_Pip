@@ -33,7 +33,45 @@ ImportModule( moduleName:str, pipPackageName:str = '', additionalSettings:List[s
 
 ## TD_UV
 Implements the UV-PackageManager https://github.com/astral-sh/uv
+
 No manual isnatllation required but it does either use the gobal installed UV or downloads and prepares a UV-Installation on demand.
+
+__NOTE__: This will init your projects as a UV-Project, creating an \__init__.py and pyproject.toml where it saves all installed dependencies. It also creates a fitting VENV inside of your project folder.
+
+This allows the use of UV easily from the outside, for example when deploying the project or for creating pre-start scripts in the init.py
+
+__EACH PACkAGE INSTALLED WILL BE ADDED TO THE PYPROJECT.TOML__
+
+
+```python
+Mount()
+# A contextmanager to setup sys.env-path and if not already done, init TD_PIP and make sure this happens in time.
+# Example
+with op("TD_Uv").Moun():
+  import installedModule
+```
+
+```python
+MountPackage( moduleName:str, pipPackageName:str = '',additionalSettings = [] )
+# A contextmanager that prepared a packages, i.E. it checks if the passed module is already installed and will do that if the test fails.
+with op("TD_Uv").MounModule( "MyModule", pipPackageName = "MyModulesPackage" ):
+  import MyModule
+```
+
+```python
+TestModule( moduleName:str, silent:bool = False) -> bool
+# Tests if a odule is available for import. If silent is False, a messagebox will pop up.
+```
+
+```python
+ImportModule( moduleName:str, pipPackageName:str = '', additionalSettings:List[str]=[] ) -> Module
+# Returns the module as a result. Good for inline or in paameters. In regular code, use ContextManager
+```
+
+```python
+op("TD_Uv").ext.extTDuv.runUvCommand("add foobar")
+# Allows running of uv commands. Actually only for internal use but you know what, go wild :=
+```
 
 ## TD_CONDA
 Hands off installer for conda. Can be used to install and run subprocesses that require many dependencies. In genera the heaviest solution in this repo.
@@ -60,7 +98,7 @@ To import the module you need to mount the env. This keeps TD_Conda from polutin
 When passing clearModules = False, this will remove the already imported modules from the importCache, resulting in a fresh new import. This is reset after the contextmanager is left. 
 This can bue usefull when working with modules that are relying on specifric version of numpy or openCV.
 ```python
-with op("TD_Conda").Mount( clearModules = False):
+with op("TD_Conda").Mount():
   import moduleName
 ```
 
